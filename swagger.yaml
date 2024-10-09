@@ -1,0 +1,978 @@
+openapi: 3.0.0
+info:
+  title: API Documentation GearVN
+  version: 1.0.0
+  description: Tài liệu mô tả các API liên quan đến giỏ hàng và người dùng.
+
+servers:
+  - url: http://192.168.1.22:3000
+
+components:
+  securitySchemes:
+    JWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Nhập token JWT trong phần Header
+
+security:
+  - JWT: []
+tags: # Định nghĩa các tags và description
+  - name: Giỏ hàng
+    description: Các API liên quan đến thao tác với giỏ hàng như thêm sản phẩm, giảm số lượng, và xóa sản phẩm.
+  - name: User
+    description: API cho phép người dùng đăng ký và đăng nhập vào hệ thống sử dụng JSON Web Token (JWT) để xác thực. Mỗi lần đăng nhập thành công sẽ trả về một JWT để người dùng sử dụng cho các yêu cầu tiếp theo.
+  - name: Danh mục
+    description: Các API liên quan đến thao tác danh mục như tạo, lấy danh sách, cập nhật, và xóa danh mục.
+  - name: Danh mục con
+    description: Các API liên quan đến thao tác danh mục con như tạo, lấy danh sách, cập nhật, và xóa danh mục con.
+  - name: Sản phẩm
+    description: Các API liên quan đến thao tác với sản phẩm như thêm, sửa, xóa, và tìm kiếm sản phẩm.
+
+paths:
+  # Mục API liên quan đến người dùng
+  /api/v1/auth/signin:
+    post:
+      tags:
+        - User
+      summary: Đăng nhập tài khoản
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Thành công - trả về thông tin người dùng và token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      email:
+                        type: string
+                        format: email
+
+  /api/v1/auth/signup:
+    post:
+      tags:
+        - User
+      summary: Tạo mới tài khoản người dùng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "201":
+          description: Thành công - tài khoản đã được tạo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Tài khoản đã được tạo thành công."
+
+  /api/v1/auth/google:
+    post:
+      tags:
+        - User
+      summary: Đăng nhập bằng Google
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Thành công - trả về thông tin người dùng và token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      email:
+                        type: string
+                        format: email
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - User
+      summary: Đăng xuất
+      security:
+        - JWT: []
+      responses:
+        "200":
+          description: Thành công - đã đăng xuất
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Đã đăng xuất thành công."
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags:
+        - User
+      summary: Quên mật khẩu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Thành công - email đã được gửi để đặt lại mật khẩu
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email đã được gửi để đặt lại mật khẩu."
+
+  /api/v1/auth/reset-password/{token}:
+    post:
+      tags:
+        - User
+      summary: Đặt lại mật khẩu
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: Token để đặt lại mật khẩu
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Thành công - mật khẩu đã được thay đổi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Mật khẩu đã được thay đổi thành công."
+  # Mục API liên quan đến giỏ hàng
+  /api/v1/cart/get-cart:
+    get:
+      tags:
+        - Giỏ hàng
+      summary: Lấy tất cả thông tin giỏ hàng
+      security:
+        - JWT: []
+      responses:
+        "200":
+          description: Thành công - trả về thông tin giỏ hàng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        productId:
+                          type: integer
+                        quantity:
+                          type: integer
+                        name:
+                          type: string
+                        price:
+                          type: number
+                          format: float
+
+  /api/v1/cart/add-cart:
+    post:
+      tags:
+        - Giỏ hàng
+      summary: Thêm sản phẩm vào giỏ hàng
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: integer
+                quantity:
+                  type: integer
+      responses:
+        "201":
+          description: Thành công - sản phẩm đã được thêm vào giỏ hàng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Sản phẩm đã được thêm vào giỏ hàng."
+
+  /api/v1/cart/decrement-cart:
+    post:
+      tags:
+        - Giỏ hàng
+      summary: Giảm số lượng sản phẩm trong giỏ hàng
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: integer
+                quantity:
+                  type: integer
+      responses:
+        "200":
+          description: Thành công - số lượng sản phẩm đã giảm
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Số lượng sản phẩm đã giảm."
+
+  /api/v1/cart/toggle-product:
+    post:
+      tags:
+        - Giỏ hàng
+      summary: Chọn sản phẩm muốn mua trong giỏ hàng
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: integer
+                selected:
+                  type: boolean
+      responses:
+        "200":
+          description: Thành công - trạng thái sản phẩm đã được cập nhật
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Trạng thái sản phẩm đã được cập nhật."
+
+  /api/v1/cart/delete-product-cart:
+    post:
+      tags:
+        - Giỏ hàng
+      summary: Xóa 1 sản phẩm trong giỏ hàng
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: integer
+      responses:
+        "200":
+          description: Thành công - sản phẩm đã được xóa khỏi giỏ hàng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Sản phẩm đã được xóa khỏi giỏ hàng."
+
+  /api/v1/categories:
+    post:
+      tags:
+        - Danh mục
+      summary: Tạo danh mục mới
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Thành công - danh mục đã được tạo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Danh mục đã được tạo thành công."
+    get:
+      tags:
+        - Danh mục
+      summary: Lấy danh sách danh mục
+      security:
+        - JWT: []
+      servers:
+        - url: http://192.168.1.32:3000
+      responses:
+        "200":
+          description: Thành công - trả về danh sách các danh mục
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    description:
+                      type: string
+
+  /api/v1/categories/{id}:
+    put:
+      tags:
+        - Danh mục
+      summary: Cập nhật danh mục
+      security:
+        - JWT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: Thành công - danh mục đã được cập nhật
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Danh mục đã được cập nhật thành công."
+    delete:
+      tags:
+        - Danh mục
+      summary: Xóa danh mục
+      security:
+        - JWT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Thành công - danh mục đã được xóa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Danh mục đã được xóa thành công."
+  #////////////////////////////////////
+  /api/v1/subcategories:
+    post:
+      tags:
+        - Danh mục con
+      summary: Tạo danh mục con mới
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                category:
+                  type: string
+                  description: ID của danh mục chính
+      responses:
+        "201":
+          description: Thành công - danh mục con đã được tạo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    type: object
+                    properties:
+                      subcategory:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                          name:
+                            type: string
+                          slug:
+                            type: string
+                          category:
+                            type: string
+                          createdAt:
+                            type: string
+                            format: date-time
+                          updatedAt:
+                            type: string
+                            format: date-time
+        "400":
+          description: Bad Request - Tên danh mục con dưới 2 ký tự hoặc đã tồn tại
+        "500":
+          description: Internal Server Error - Lỗi phía server
+
+    get:
+      tags:
+        - Danh mục con
+      summary: Lấy danh sách các danh mục con
+      security:
+        - JWT: []
+      responses:
+        "200":
+          description: Thành công - trả về danh sách các danh mục con
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  results:
+                    type: integer
+                    description: Số lượng danh mục con
+                  data:
+                    type: object
+                    properties:
+                      subcategories:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                            name:
+                              type: string
+                            slug:
+                              type: string
+                            category:
+                              type: string
+                            createdAt:
+                              type: string
+                              format: date-time
+                            updatedAt:
+                              type: string
+                              format: date-time
+        "500":
+          description: Internal Server Error - Lỗi phía server
+
+  /api/v1/subcategories/{id}:
+    put:
+      tags:
+        - Danh mục con
+      summary: Cập nhật danh mục con
+      security:
+        - JWT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+      responses:
+        "200":
+          description: Thành công - danh mục con đã được cập nhật
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    type: object
+                    properties:
+                      subcategory:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                          name:
+                            type: string
+                          slug:
+                            type: string
+                          category:
+                            type: string
+                          createdAt:
+                            type: string
+                            format: date-time
+                          updatedAt:
+                            type: string
+                            format: date-time
+        "404":
+          description: Not Found - Không tìm thấy danh mục con với ID đã cho
+        "400":
+          description: Bad Request - Tên danh mục con không hợp lệ
+        "500":
+          description: Internal Server Error - Lỗi phía server
+
+    delete:
+      tags:
+        - Danh mục con
+      summary: Xóa danh mục con
+      security:
+        - JWT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Thành công - danh mục con đã được xóa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Danh mục con đã được xóa thành công."
+        "404":
+          description: Not Found - Không tìm thấy danh mục con với ID đã cho
+        "500":
+          description: Internal Server Error - Lỗi phía server
+  /api/v1/products:
+    post:
+      tags:
+        - Sản phẩm
+      summary: Thêm sản phẩm mới
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Tên sản phẩm.
+                imgCover:
+                  type: string
+                  description: Đường dẫn đến ảnh bìa sản phẩm.
+                images:
+                  type: array
+                  items:
+                    type: string
+                  description: Danh sách các ảnh chi tiết sản phẩm.
+                description:
+                  type: string
+                  description: Mô tả chi tiết sản phẩm.
+                configuration:
+                  type: object
+                  properties:
+                    cpu:
+                      type: string
+                      description: Thông tin về bộ vi xử lý (CPU) của sản phẩm.
+                    ram:
+                      type: string
+                      description: Thông tin về bộ nhớ RAM của sản phẩm.
+                    storage:
+                      type: string
+                      description: Thông tin về dung lượng lưu trữ của sản phẩm (SSD/HDD).
+                    graphicsCard:
+                      type: string
+                      description: Thông tin về card đồ họa (GPU) của sản phẩm.
+                    screen:
+                      type: string
+                      description: Kích thước màn hình và độ phân giải.
+                    operatingSystem:
+                      type: string
+                      description: Hệ điều hành cài sẵn của sản phẩm.
+                    battery:
+                      type: string
+                      description: Thông tin về pin của sản phẩm (dung lượng, thời gian sử dụng).
+                    weight:
+                      type: string
+                      description: Trọng lượng của sản phẩm.
+                    keyboard:
+                      type: string
+                      description: Thông tin về bàn phím của sản phẩm (có thể rỗng).
+                    mouse:
+                      type: string
+                      description: Thông tin về chuột của sản phẩm (có thể rỗng).
+                price:
+                  type: number
+                  format: float
+                  description: Giá của sản phẩm.
+                priceAfterDiscount:
+                  type: number
+                  format: float
+                  description: Giá sản phẩm sau khi áp dụng giảm giá.
+                quantity:
+                  type: integer
+                  description: Số lượng sản phẩm có sẵn trong kho.
+                sold:
+                  type: integer
+                  description: Số lượng sản phẩm đã bán.
+                category:
+                  type: string
+                  description: ID của danh mục sản phẩm.
+                subcategory:
+                  type: string
+                  description: ID của phân loại sản phẩm.
+                brand:
+                  type: string
+                  description: ID của thương hiệu sản phẩm.
+                ratingAvg:
+                  type: number
+                  format: float
+                  description: Đánh giá trung bình của sản phẩm (từ 1 đến 5).
+                ratingCount:
+                  type: integer
+                  description: Số lượng đánh giá sản phẩm.
+      responses:
+        "201":
+          description: Thành công - sản phẩm đã được tạo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Product created successfully"
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      title:
+                        type: string
+                      imgCover:
+                        type: string
+                      images:
+                        type: array
+                        items:
+                          type: string
+                      description:
+                        type: string
+                      configuration:
+                        type: object
+                        properties:
+                          cpu:
+                            type: string
+                          ram:
+                            type: string
+                          storage:
+                            type: string
+                          graphicsCard:
+                            type: string
+                          screen:
+                            type: string
+                          operatingSystem:
+                            type: string
+                          battery:
+                            type: string
+                          weight:
+                            type: string
+                          keyboard:
+                            type: string
+                          mouse:
+                            type: string
+                      price:
+                        type: number
+                        format: float
+                      priceAfterDiscount:
+                        type: number
+                        format: float
+                      quantity:
+                        type: integer
+                      category:
+                        type: string
+                      subcategory:
+                        type: string
+                      brand:
+                        type: string
+                      ratingAvg:
+                        type: number
+                        format: float
+                      ratingCount:
+                        type: integer
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+
+  /api/v1/products/search:
+    post:
+      tags:
+        - Sản phẩm
+      summary: Tìm kiếm sản phẩm
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Chuỗi tìm kiếm sản phẩm.
+      responses:
+        "200":
+          description: Thành công - trả về danh sách sản phẩm
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        title:
+                          type: string
+                        imgCover:
+                          type: string
+                        price:
+                          type: number
+                          format: float
+
+  /api/v1/products/{id}:
+    put:
+      tags:
+        - Sản phẩm
+      summary: Sửa sản phẩm
+      security:
+        - JWT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                imgCover:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+                configuration:
+                  type: object
+                  properties:
+                    cpu:
+                      type: string
+                    ram:
+                      type: string
+                    storage:
+                      type: string
+                    graphicsCard:
+                      type: string
+                    screen:
+                      type: string
+                    operatingSystem:
+                      type: string
+                    battery:
+                      type: string
+                    weight:
+                      type: string
+                    keyboard:
+                      type: string
+                    mouse:
+                      type: string
+                price:
+                  type: number
+                  format: float
+                priceAfterDiscount:
+                  type: number
+                  format: float
+                quantity:
+                  type: integer
+                sold:
+                  type: integer
+                category:
+                  type: string
+                subcategory:
+                  type: string
+                brand:
+                  type: string
+                ratingAvg:
+                  type: number
+                  format: float
+                ratingCount:
+                  type: integer
+      responses:
+        "200":
+          description: Thành công - sản phẩm đã được cập nhật
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Product updated successfully"
+
+    delete:
+      tags:
+        - Sản phẩm
+      summary: Xóa sản phẩm
+      security:
+        - JWT: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Thành công - sản phẩm đã được xóa
